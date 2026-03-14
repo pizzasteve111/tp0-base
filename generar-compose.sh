@@ -20,7 +20,6 @@ services:
     entrypoint: python3 /main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
     volumes:
@@ -39,7 +38,6 @@ cat >> "$COMPOSE_FILE" <<EOF
     entrypoint: /client
     environment:
       - CLI_ID=$i
-      - CLI_LOG_LEVEL=DEBUG
     depends_on:
       - server
     networks:
