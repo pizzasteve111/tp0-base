@@ -14,7 +14,7 @@ echo "hay $TOTAL_CLIENTS clientes levantados "
 
 #las <> indican la dirección, con cat. Osea todo va a parar al output file
 cat > "$COMPOSE_FILE" <<EOF
-name: tp0
+version: "3"
 services:
   server:
     container_name: server
