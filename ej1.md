@@ -9,3 +9,7 @@ docker build -t client:latest -f client/Dockerfile .
 docker build -t server:latest -f server/Dockerfile .
 
 despues en wsl cd /mnt/c/Users/juanc/tp0-tests,  source venv/bin/activate, REPO_PATH=/mnt/c/Users/juanc/tp0/tp0-base make test
+
+EJ2:
+quiero que modificaciones en el config no me obliguen a reconstruir imagenes. Las configs deben vivir en el volumen del container.
+. En el .sh le indico que quiero que los configs se carguen en el volumen del container

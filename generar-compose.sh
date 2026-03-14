@@ -23,6 +23,8 @@ services:
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
+    volumes:
+      - ./server/config.ini:/app/config.ini
 EOF
 
 for i in $(seq 1 "$TOTAL_CLIENTS")
@@ -40,6 +42,8 @@ cat >> "$COMPOSE_FILE" <<EOF
       - server
     networks:
       - testing_net
+    volumes:
+      - ./client/config.yaml:/app/config.yaml
 EOF
 done
 
