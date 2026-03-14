@@ -10,7 +10,7 @@ if [ -z "$COMPOSE_FILE" ] || [ -z "$TOTAL_CLIENTS" ]; then
 fi
 
 
-echo "hay $TOTAL_CLIENTS clientes levantados "
+
 
 #las <> indican la dirección, con cat. Osea todo va a parar al output file
 cat > "$COMPOSE_FILE" <<EOF
