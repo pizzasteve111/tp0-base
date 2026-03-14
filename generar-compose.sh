@@ -24,7 +24,9 @@ services:
     networks:
       - testing_net
     volumes:
-      - ./server/config.ini:/app/config.ini
+      - ./server/config.ini:/config.ini
+
+      
 EOF
 
 for i in $(seq 1 "$TOTAL_CLIENTS")
