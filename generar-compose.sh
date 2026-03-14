@@ -3,7 +3,6 @@
 COMPOSE_FILE=$1
 TOTAL_CLIENTS=$2
 
-# Si están vacíos los parámetros, mostrar uso y salir
 if [ -z "$COMPOSE_FILE" ] || [ -z "$TOTAL_CLIENTS" ]; then
     
     exit 1
@@ -12,7 +11,6 @@ fi
 
 
 
-#las <> indican la dirección, con cat. Osea todo va a parar al output file
 cat > "$COMPOSE_FILE" <<EOF
 version: "3"
 services:
@@ -27,7 +25,6 @@ services:
       - testing_net
 EOF
 
-#levanto un container por cada uno de los N clientes,
 for i in $(seq 1 "$TOTAL_CLIENTS")
 do
 cat >> "$COMPOSE_FILE" <<EOF
@@ -56,4 +53,3 @@ networks:
         - subnet: 172.25.125.0/24
 EOF
 
-##entonces con esto hago que se me genere el compose.yaml con todas estas configuraciones que le pido
