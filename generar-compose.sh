@@ -1,7 +1,7 @@
 #!/bin/bash
 
-COMPOSE_FILE=${1:-}
-TOTAL_CLIENTS=${2:-}
+COMPOSE_FILE=$1
+TOTAL_CLIENTS=$2
 
 # Si están vacíos los parámetros, mostrar uso y salir
 if [ -z "$COMPOSE_FILE" ] || [ -z "$TOTAL_CLIENTS" ]; then
@@ -28,7 +28,7 @@ services:
 EOF
 
 #levanto un container por cada uno de los N clientes,
-for ((i=1;i<=TOTAL_CLIENTS;i++))
+for i in $(seq 1 "$TOTAL_CLIENTS")
 do
 cat >> "$COMPOSE_FILE" <<EOF
 
