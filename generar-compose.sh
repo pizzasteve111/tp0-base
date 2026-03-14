@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 COMPOSE_FILE=${1:-}
 TOTAL_CLIENTS=${2:-}
 
