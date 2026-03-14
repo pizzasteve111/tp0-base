@@ -43,7 +43,7 @@ cat >> "$COMPOSE_FILE" <<EOF
     networks:
       - testing_net
     volumes:
-      - ./client/config.yaml:/app/config.yaml
+      - ./client/config.yaml:/config.yaml
 EOF
 done
 
