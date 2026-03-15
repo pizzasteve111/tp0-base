@@ -13,3 +13,11 @@ despues en wsl cd /mnt/c/Users/juanc/tp0-tests,  source venv/bin/activate, REPO_
 EJ2:
 quiero que modificaciones en el config no me obliguen a reconstruir imagenes. Las configs deben vivir en el volumen del container.
 . En el .sh le indico que quiero que los configs se carguen en el volumen del container
+
+EJ3:
+#contenedor temporal, el rm lo borra
+MSG_RESPONSE=$(docker run --rm --network $NETWORK \
+#se usa la imagen busybox que ya tiene netcat interno, entonces
+#la comunicación sucede en el interior del compose
+        busybox sh -c  "echo $MESSAGE | nc $SERVER_CONTAINER $PORT" | tr -d '\r\n')
+#sh -c le pide a la shell que ejecute el siguiente comando ""
