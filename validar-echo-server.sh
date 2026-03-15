@@ -2,7 +2,7 @@
 
 
 
-NETWORK=tp0_testing_net
+NETWORK=testing_net
 SERVER_CONTAINER=server
 PORT=12345
 MESSAGE="ping"
