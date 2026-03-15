@@ -8,7 +8,8 @@ para construir las imagenes bien:
 docker build -t client:latest -f client/Dockerfile .
 docker build -t server:latest -f server/Dockerfile .
 
-despues en wsl cd /mnt/c/Users/juanc/tp0-tests,  source venv/bin/activate, REPO_PATH=/mnt/c/Users/juanc/tp0/tp0-base make test
+despues en wsl cd /mnt/c/Users/juanc/tp0-tests,  source venv/bin/activate, REPO_PATH=/home/juanc/tp0-base make test
+docker pull busybox para imagen que hace test
 
 EJ2:
 quiero que modificaciones en el config no me obliguen a reconstruir imagenes. Las configs deben vivir en el volumen del container.
