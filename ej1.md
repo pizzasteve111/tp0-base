@@ -8,6 +8,8 @@ para construir las imagenes bien:
 docker build -t client:latest -f client/Dockerfile .
 docker build -t server:latest -f server/Dockerfile .
 
+hacer cd ~/tp0-base para pullearse los cambios
+
 despues en wsl cd /mnt/c/Users/juanc/tp0-tests,  source venv/bin/activate, REPO_PATH=/home/juanc/tp0-base make test
 docker pull busybox para imagen que hace test
 
@@ -22,3 +24,5 @@ MSG_RESPONSE=$(docker run --rm --network $NETWORK \
 #la comunicación sucede en el interior del compose
         busybox sh -c  "echo $MESSAGE | nc $SERVER_CONTAINER $PORT" | tr -d '\r\n')
 #sh -c le pide a la shell que ejecute el siguiente comando ""
+
+hola
