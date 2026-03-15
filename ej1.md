@@ -25,4 +25,8 @@ MSG_RESPONSE=$(docker run --rm --network $NETWORK \
         busybox sh -c  "echo $MESSAGE | nc $SERVER_CONTAINER $PORT" | tr -d '\r\n')
 #sh -c le pide a la shell que ejecute el siguiente comando ""
 
-hola
+hago NETWORK=$(docker inspect $SERVER_CONTAINER \
+    --format '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}' 2>/dev/null)
+
+porque lo que quiero es obtener toda la data del container,
+me quedo con la network del container y uso esa para testear al echo
