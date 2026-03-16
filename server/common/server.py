@@ -90,7 +90,7 @@ class Server:
 
             client_sock.sendall(b"OK\n")
         except OSError as e:
-            logging.error("action: process_bet | result: fail | error: {e}")
+            logging.error(f"action: process_bet | result: fail | error: {e}")
         finally:
             client_sock.close()
 
