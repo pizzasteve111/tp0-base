@@ -30,3 +30,6 @@ hago NETWORK=$(docker inspect $SERVER_CONTAINER \
 
 porque lo que quiero es obtener toda la data del container,
 me quedo con la network del container y uso esa para testear al echo
+
+
+EJERCICIO 4:
