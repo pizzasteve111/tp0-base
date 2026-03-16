@@ -33,3 +33,8 @@ me quedo con la network del container y uso esa para testear al echo
 
 
 EJERCICIO 4:
+
+Quiero que al mandar sigterm, termine gracefull. Osea que el server termine de responder sus mensajes sin aceptar nuevos y que el cliente cierre conexión.
+
+Client tiene que tener un handle shutdown donde corta socket, server donde no acepta mas conns.
+En el compose tiene que manejarse el comando SIGTERM y setear el tiempo que tienen.

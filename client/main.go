@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -115,5 +117,16 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+	//abro canal para signals, si es sigterm que se notifique
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGTERM)
+
+	go func() {
+		//funcion se invoca solo si recibe algo por el sig channel
+		<-sigChan
+		log.Infof("action: shutdown | result: in_progress")
+		client.HandleShutdown()
+		os.Exit(0)
+	}()
 	client.StartClientLoop()
 }

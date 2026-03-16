@@ -10,6 +10,8 @@ services:
       - testing_net
     volumes:
       - ./server/config.ini:/config.ini
+    stop_signal: SIGTERM
+    stop_grace_period: 30s
 
       
 
@@ -25,6 +27,8 @@ services:
       - testing_net
     volumes:
       - ./client/config.yaml:/config.yaml
+    stop_signal: SIGTERM
+    stop_grace_period: 20s
 
 networks:
   testing_net:

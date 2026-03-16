@@ -34,6 +34,13 @@ func NewClient(config ClientConfig) *Client {
 	return client
 }
 
+// si llame a sigterm, que se asegure cerrar la conn
+func (c *Client) HandleShutdown() {
+	if c.conn != nil {
+		c.conn.Close()
+	}
+}
+
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
