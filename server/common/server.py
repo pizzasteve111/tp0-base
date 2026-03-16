@@ -85,7 +85,7 @@ class Server:
             #mando ack
             
             logging.info(
-                f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}'
+                f'action: apuesta_almacenada | result: success | dni: {dni} | numero: {bet_number}'
             )
 
             client_sock.sendall(b"OK\n")

@@ -24,10 +24,10 @@ class Bet:
         self.birthdate = datetime.date.fromisoformat(birthdate)
         self.number = int(number)
     
-    def GetDni()->int:
+    def GetDni(self)->int:
         return self.document
     
-    def GetNumber()->int:
+    def GetNumber(self)->int:
         return self.number
 
 """ Checks whether a bet won the prize or not. """
