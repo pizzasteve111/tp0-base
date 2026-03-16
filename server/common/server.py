@@ -1,7 +1,7 @@
 import socket
 import logging
 import signal
-from utils import Bet, store_bets, load_bets
+from common.utils import Bet, store_bets, load_bets
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -53,7 +53,21 @@ class Server:
         # while True:
         #     client_sock = self.__accept_new_connection()
         #     self.__handle_client_connection(client_sock)
+    #asegura que hasta que no termine el salto de linea, no deja leer
+    def __recv_line(self, sock):
 
+        data = b''
+
+        while not data.endswith(b'\n'):
+
+            chunk = sock.recv(1024)
+
+            if not chunk:
+                break
+
+            data += chunk
+
+        return data.decode().strip()
     def __handle_client_connection(self, client_sock):
         """
         Read message from a specific client socket and closes the socket

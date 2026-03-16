@@ -70,7 +70,7 @@ type ClientBet struct {
 // devuelve una tira de bytes que puedo pasar por canal
 func serializeBet(b ClientBet) []byte {
 	msg := fmt.Sprintf(
-		"%s,%s,%s,%s,%s\n",
+		"%s,%s,%s,%s,%s,%s\n",
 		b.Agency,
 		b.FirstName,
 		b.LastName,
@@ -83,9 +83,9 @@ func serializeBet(b ClientBet) []byte {
 }
 
 // a partir de las env var que triggerean a client, genero Bet
-func readBetFromEnv() ClientBet {
+func readBetFromEnv(clientID string) ClientBet {
 	return ClientBet{
-		Agency:    os.Getenv("AGENCIA"),
+		Agency:    clientID,
 		FirstName: os.Getenv("NOMBRE"),
 		LastName:  os.Getenv("APELLIDO"),
 		Document:  os.Getenv("DOCUMENTO"),
@@ -113,7 +113,7 @@ func writeFull(conn net.Conn, data []byte) error {
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
 	//seteo las env variables de las compras de usuarios
-	bet := readBetFromEnv()
+	bet := readBetFromEnv(c.config.ID)
 	//creo un metodo para serializar estos campos en una tira de bytes
 	//que pueda enviar por el canal al server
 
@@ -126,7 +126,7 @@ func (c *Client) StartClientLoop() {
 
 	err = writeFull(c.conn, data)
 	if err != nil {
-		log.Errorf("action: send_bet | result: fail | error: %v", err)
+
 		c.conn.Close()
 		return
 	}
@@ -136,7 +136,6 @@ func (c *Client) StartClientLoop() {
 	c.conn.Close()
 
 	if err != nil {
-		log.Errorf("action: receive_response | result: fail | error: %v", err)
 		return
 	}
 
