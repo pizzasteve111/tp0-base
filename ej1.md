@@ -38,3 +38,26 @@ Quiero que al mandar sigterm, termine gracefull. Osea que el server termine de r
 
 Client tiene que tener un handle shutdown donde corta socket, server donde no acepta mas conns.
 En el compose tiene que manejarse el comando SIGTERM y setear el tiempo que tienen.
+
+EJERCICIO 5:
+Ahora se simula la logica de una lotería.
+
+Cliente es una quiniela, se levantan 5 clientes.
+Sus variables de entorno son el de los campos de apuestas(nombres, numero etc).
+
+Las variables de entorno que reciben representan a un usuario haciendo una apuesta. Los tests van a usar esto para simular apuestas que se hacen.
+Client tiene que saber como interpretarlo.
+
+SERVER:
+tiene que poder recibir el bet de un client, leer los campos de la apuesta
+y los almacena en las funciones ya dadas.
+
+Protocolo:
+Cuando client se triggerea por una env variable de una apuesta,
+establece conexión con server.
+Existe un tipo de dato BET_MESSAGE donde puede serializar los campos en
+bytes y enviarlo por el canal, luego server sabe exactamente lo que recibe
+asi que lo puede ir parseando y obteniendo el tipo de dato exacto que busca.
+
+usamos send_all y recv_exact para evitar shor read/write.
+Timeouts

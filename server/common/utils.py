@@ -23,6 +23,12 @@ class Bet:
         self.document = document
         self.birthdate = datetime.date.fromisoformat(birthdate)
         self.number = int(number)
+    
+    def GetDni()->int:
+        return self.document
+    
+    def GetNumber()->int:
+        return self.number
 
 """ Checks whether a bet won the prize or not. """
 def has_won(bet: Bet) -> bool:

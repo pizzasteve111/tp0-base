@@ -1,7 +1,7 @@
 import socket
 import logging
 import signal
-
+from utils import Bet, store_bets, load_bets
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -17,6 +17,23 @@ class Server:
         logging.info("action: shutdown | result: in_progress")
         self._shutdown = True
         self._server_socket.close()
+
+    def __parse_bet(self, msg: str) -> Bet:
+        fields = msg.split(',')
+
+        if len(fields) != 6:
+            raise ValueError("Invalid bet format")
+
+        agency, first_name, last_name, document, birthdate, number = fields
+
+        return Bet(
+            agency,
+            first_name,
+            last_name,
+            document,
+            birthdate,
+            number
+        )
     def run(self):
         """
         Dummy Server loop
@@ -46,13 +63,20 @@ class Server:
         """
         try:
             # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            msg = self.__recv_line(client_sock)
+            
+            bet = self.__parse_bet(msg)
+            dni,bet_number=bet.GetDni(),bet.GetNumber()
+            store_bets([bet])
+            #mando ack
+            
+            logging.info(
+                f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}'
+            )
+
+            client_sock.sendall(b"OK\n")
         except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
+            logging.error("action: process_bet | result: fail | error: {e}")
         finally:
             client_sock.close()
 

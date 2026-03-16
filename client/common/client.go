@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/op/go-logging"
@@ -57,40 +58,96 @@ func (c *Client) createClientSocket() error {
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
-func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
+type ClientBet struct {
+	Agency    string
+	FirstName string
+	LastName  string
+	Document  string
+	BirthDate string
+	Number    string
+}
 
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
+// devuelve una tira de bytes que puedo pasar por canal
+func serializeBet(b ClientBet) []byte {
+	msg := fmt.Sprintf(
+		"%s,%s,%s,%s,%s\n",
+		b.Agency,
+		b.FirstName,
+		b.LastName,
+		b.Document,
+		b.BirthDate,
+		b.Number,
+	)
 
+	return []byte(msg)
+}
+
+// a partir de las env var que triggerean a client, genero Bet
+func readBetFromEnv() ClientBet {
+	return ClientBet{
+		Agency:    os.Getenv("AGENCIA"),
+		FirstName: os.Getenv("NOMBRE"),
+		LastName:  os.Getenv("APELLIDO"),
+		Document:  os.Getenv("DOCUMENTO"),
+		BirthDate: os.Getenv("NACIMIENTO"),
+		Number:    os.Getenv("NUMERO"),
+	}
+}
+func writeFull(conn net.Conn, data []byte) error {
+
+	total := 0
+
+	for total < len(data) {
+
+		n, err := conn.Write(data[total:])
 		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
+			return err
 		}
 
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
-
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
-
+		total += n
 	}
+
+	return nil
+}
+
+// StartClientLoop Send messages to the client until some time threshold is met
+func (c *Client) StartClientLoop() {
+	//seteo las env variables de las compras de usuarios
+	bet := readBetFromEnv()
+	//creo un metodo para serializar estos campos en una tira de bytes
+	//que pueda enviar por el canal al server
+
+	err := c.createClientSocket()
+	if err != nil {
+		return
+	}
+
+	data := serializeBet(bet)
+
+	err = writeFull(c.conn, data)
+	if err != nil {
+		log.Errorf("action: send_bet | result: fail | error: %v", err)
+		c.conn.Close()
+		return
+	}
+
+	reader := bufio.NewReader(c.conn)
+	_, err = reader.ReadString('\n')
+	c.conn.Close()
+
+	if err != nil {
+		log.Errorf("action: receive_response | result: fail | error: %v", err)
+		return
+	}
+
+	log.Infof(
+		"action: apuesta_enviada | result: success | dni: %s | numero: %s",
+		bet.Document,
+		bet.Number,
+	)
+
+	//este loop medio que se iría si ahora client solo se encarga de comunicar
+	//bets a server, no habría mas msgId
+
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
