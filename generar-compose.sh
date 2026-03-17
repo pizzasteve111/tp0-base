@@ -38,16 +38,17 @@ cat >> "$COMPOSE_FILE" <<EOF
     entrypoint: /client
     environment:
       - CLI_ID=$i
-      - NOMBRE=Santiago
-      - APELLIDO=Lorca
-      - DOCUMENTO=30904465
-      - NACIMIENTO=1999-03-17
-      - NUMERO=7574
+      - NOMBRE=${NOMBRE}
+      - APELLIDO=${APELLIDO}
+      - DOCUMENTO=${DOCUMENTO}
+      - NACIMIENTO=${NACIMIENTO}
+      - NUMERO=${NUMERO}
     depends_on:
       - server
     networks:
       - testing_net
     volumes:
+      - ./data/dataset.zip:/dataset/dataset.zip
       - ./client/config.yaml:/config.yaml
 EOF
 done

@@ -1,14 +1,33 @@
 package common
 
 import (
+	"archive/zip"
 	"bufio"
 	"fmt"
 	"net"
-	"os"
+	"strings"
 	"time"
 
 	"github.com/op/go-logging"
 )
+
+func openAgencyFile(id string) (*zip.File, error) {
+
+	reader, err := zip.OpenReader("/dataset/dataset.zip")
+	if err != nil {
+		return nil, err
+	}
+
+	target := fmt.Sprintf("agency-%s.csv", id)
+
+	for _, f := range reader.File {
+		if f.Name == target {
+			return f, nil
+		}
+	}
+
+	return nil, fmt.Errorf("file not found")
+}
 
 var log = logging.MustGetLogger("log")
 
@@ -18,6 +37,7 @@ type ClientConfig struct {
 	ServerAddress string
 	LoopAmount    int
 	LoopPeriod    time.Duration
+	BatchSize     int
 }
 
 // Client Entity that encapsulates how
@@ -40,6 +60,12 @@ func (c *Client) HandleShutdown() {
 	if c.conn != nil {
 		c.conn.Close()
 	}
+}
+
+// en el main del cliente, el tamaño de un vector se hace
+// con el batch size
+func (c *Client) GetBatchSize() int {
+	return c.config.BatchSize
 }
 
 // CreateClientSocket Initializes client socket. In case of
@@ -81,16 +107,28 @@ func serializeBet(b ClientBet) []byte {
 
 	return []byte(msg)
 }
+func serializeBatch(bets []ClientBet) []byte {
+
+	var buffer []byte
+
+	for _, b := range bets {
+		buffer = append(buffer, serializeBet(b)...)
+	}
+
+	return buffer
+}
 
 // a partir de las env var que triggerean a client, genero Bet
-func readBetFromEnv(clientID string) ClientBet {
+func readBetFromCSV(line string, agency string) ClientBet {
+	fields := strings.Split(line, ",")
+
 	return ClientBet{
-		Agency:    clientID,
-		FirstName: os.Getenv("NOMBRE"),
-		LastName:  os.Getenv("APELLIDO"),
-		Document:  os.Getenv("DOCUMENTO"),
-		BirthDate: os.Getenv("NACIMIENTO"),
-		Number:    os.Getenv("NUMERO"),
+		Agency:    agency,
+		FirstName: fields[0],
+		LastName:  fields[1],
+		Document:  fields[2],
+		BirthDate: fields[3],
+		Number:    fields[4],
 	}
 }
 func writeFull(conn net.Conn, data []byte) error {
@@ -112,8 +150,10 @@ func writeFull(conn net.Conn, data []byte) error {
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
+	//PARTE 6: Generar un vector de espacio igual al chunk de datos
+	//en ese vector se guardan las bets a enviar.
 	//seteo las env variables de las compras de usuarios
-	bet := readBetFromEnv(c.config.ID)
+
 	//creo un metodo para serializar estos campos en una tira de bytes
 	//que pueda enviar por el canal al server
 
@@ -122,31 +162,100 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	data := serializeBet(bet)
+	reader := bufio.NewReader(c.conn)
 
-	err = writeFull(c.conn, data)
+	file, err := openAgencyFile(c.config.ID)
 	if err != nil {
-
-		c.conn.Close()
+		log.Errorf("action: open_dataset | result: fail | error: %v", err)
 		return
 	}
 
-	reader := bufio.NewReader(c.conn)
-	_, err = reader.ReadString('\n')
+	rc, err := file.Open()
+	if err != nil {
+		log.Errorf("action: open_dataset | result: fail | error: %v", err)
+		return
+	}
+	defer rc.Close()
+
+	scanner := bufio.NewScanner(rc)
+	batchSize := c.config.BatchSize
+	batch := make([]ClientBet, 0, batchSize)
+
+	for scanner.Scan() {
+
+		line := scanner.Text()
+
+		bet := readBetFromCSV(line, c.config.ID)
+
+		batch = append(batch, bet)
+
+		if len(batch) == batchSize {
+
+			data := serializeBatch(batch)
+
+			err := writeFull(c.conn, data)
+			if err != nil {
+				c.conn.Close()
+				return
+			}
+
+			_, err = reader.ReadString('\n')
+			if err != nil {
+				c.conn.Close()
+				return
+			}
+
+			for _, b := range batch {
+				log.Infof(
+					"action: apuesta_enviada | result: success | dni: %s | numero: %s",
+					b.Document,
+					b.Number,
+				)
+			}
+
+			batch = batch[:0]
+		}
+	}
+
+	// flush final
+	if len(batch) > 0 {
+
+		data := serializeBatch(batch)
+
+		err := writeFull(c.conn, data)
+		if err != nil {
+			c.conn.Close()
+			return
+		}
+
+		_, err = reader.ReadString('\n')
+		if err != nil {
+			c.conn.Close()
+			return
+		}
+
+		for _, b := range batch {
+			log.Infof(
+				"action: apuesta_enviada | result: success | dni: %s | numero: %s",
+				b.Document,
+				b.Number,
+			)
+		}
+	}
+
 	c.conn.Close()
 
-	if err != nil {
-		return
-	}
-
 	log.Infof(
-		"action: apuesta_enviada | result: success | dni: %s | numero: %s",
-		bet.Document,
-		bet.Number,
+		"action: loop_finished | result: success | client_id: %v",
+		c.config.ID,
 	)
+	//PARTE 6: se debería cambiar a iterar el vector de bets e ir enviandolas
+	//con los metos de serialize y write full que ya existen
+
+	//Parte 6: se van a ir mandando bets de a chunks.
+	//cuando terminas con el ultimo chunk, ahí si cerras conexion
 
 	//este loop medio que se iría si ahora client solo se encarga de comunicar
 	//bets a server, no habría mas msgId
 
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
