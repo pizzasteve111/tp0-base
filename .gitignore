@@ -4,3 +4,6 @@
 # Executables
 bin/
 docker-compose.yaml
+data/
+*.zip
+bets.csv
