@@ -73,6 +73,8 @@ class Server:
         try:
 
             buffer = b''
+            batch_count = 0
+            batch_error = False
 
             while True:
 
@@ -93,21 +95,37 @@ class Server:
 
                     if not msg:
                         continue
+                    try:
+                        bet = self.__parse_bet(msg)
 
-                    bet = self.__parse_bet(msg)
+                        dni = bet.GetDni()
+                        bet_number = bet.GetNumber()
 
-                    dni = bet.GetDni()
-                    bet_number = bet.GetNumber()
+                        store_bets([bet])
 
-                    store_bets([bet])
-
-                    logging.info(
-                        f'action: apuesta_almacenada | result: success | dni: {dni} | numero: {bet_number}'
-                    )
-
+                        logging.info(
+                            f'action: apuesta_almacenada | result: success | dni: {dni} | numero: {bet_number}'
+                        )
+                        batch_count+=1
+                    except Exception:
+                        batch_error=True
                 
                 client_sock.sendall(b"OK\n")
+            if batch_error:
 
+                logging.info(
+                    f'action: apuesta_recibida | result: fail | cantidad: {batch_count}'
+                )
+
+                client_sock.sendall(b"ERROR\n")
+
+            else:
+
+                logging.info(
+                    f'action: apuesta_recibida | result: success | cantidad: {batch_count}'
+                )
+
+                client_sock.sendall(b"OK\n")
         except OSError as e:
 
             logging.error(
