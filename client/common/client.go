@@ -1,32 +1,26 @@
 package common
 
 import (
-	"archive/zip"
 	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/op/go-logging"
 )
 
-func openAgencyFile(id string) (*zip.File, error) {
+func openAgencyFile(id string) (*os.File, error) {
 
-	reader, err := zip.OpenReader("/dataset/dataset.zip")
+	path := fmt.Sprintf("/dataset/agency-%s.csv", id)
+
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 
-	target := fmt.Sprintf("agency-%s.csv", id)
-
-	for _, f := range reader.File {
-		if f.Name == target {
-			return f, nil
-		}
-	}
-
-	return nil, fmt.Errorf("file not found")
+	return file, nil
 }
 
 var log = logging.MustGetLogger("log")
@@ -170,14 +164,9 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	rc, err := file.Open()
-	if err != nil {
-		log.Errorf("action: open_dataset | result: fail | error: %v", err)
-		return
-	}
-	defer rc.Close()
+	defer file.Close()
 
-	scanner := bufio.NewScanner(rc)
+	scanner := bufio.NewScanner(file)
 	batchSize := c.config.BatchSize
 	batch := make([]ClientBet, 0, batchSize)
 
