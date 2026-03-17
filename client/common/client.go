@@ -249,6 +249,11 @@ func (c *Client) StartClientLoop() {
 
 		line = strings.TrimSpace(line)
 
+		if line == "WAIT" {
+			time.Sleep(50 * time.Millisecond)
+			continue
+		}
+
 		if line == "END" {
 			break
 		}
