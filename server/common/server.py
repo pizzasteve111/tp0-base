@@ -105,7 +105,7 @@ class Server:
                         f'action: apuesta_almacenada | result: success | dni: {dni} | numero: {bet_number}'
                     )
 
-                # ACK del batch recibido
+                
                 client_sock.sendall(b"OK\n")
 
         except OSError as e:

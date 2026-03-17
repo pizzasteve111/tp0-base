@@ -38,11 +38,6 @@ cat >> "$COMPOSE_FILE" <<EOF
     entrypoint: /client
     environment:
       - CLI_ID=$i
-      - NOMBRE=${NOMBRE}
-      - APELLIDO=${APELLIDO}
-      - DOCUMENTO=${DOCUMENTO}
-      - NACIMIENTO=${NACIMIENTO}
-      - NUMERO=${NUMERO}
     depends_on:
       - server
     networks:

@@ -61,3 +61,20 @@ asi que lo puede ir parseando y obteniendo el tipo de dato exacto que busca.
 
 usamos send_all y recv_exact para evitar shor read/write.
 Timeouts
+
+Ejercicio 6:
+
+antes el cliente mandaba una bet y cerraba conexion, ahora queremos mandar un chunk de bets.
+Tiene que haber conexión persistente. Ni cliente ni servidor deben terminar conexión.
+
+Cliente manda un conjunto de bets así solo recibe ack por batches y es mas eficiente.
+
+En el config se instancia el tamaño del chunk,
+cuando recibe una bet desde las env var, lo que hace es generar un vector
+del tamaño dado por la config. En ese vector guardan las bets y de ahí
+
+Las env var ahora tienen que ser configurables para cada uno de los usuarios.
+
+se configura una cantidad maxima de apuestas.
+
+Los archivos tienen que estar en el volumen así no se duplican en cada imagen.
