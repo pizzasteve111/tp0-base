@@ -78,3 +78,22 @@ Las env var ahora tienen que ser configurables para cada uno de los usuarios.
 se configura una cantidad maxima de apuestas.
 
 Los archivos tienen que estar en el volumen así no se duplican en cada imagen.
+
+EJERCICIO 7:
+
+Una vez que cada client termina de leer su csv y de mandar todas las bets
+. Entonces manda un nuevo mensaje en el que comunica el final de las bets
+Cuando Client manda END, se tiene que quedar esperando.
+dejamos los acks que el server venía mandando.
+
+Luego manda otro mensaje en el que solicita conocer al ganador del sorteo.
+Server responde este mensaje con los ganadores en chunks(repetimos misma logica que los chunks de client a server).
+
+Actualmente server solo recibe un tipo de mensaje que son los bets.
+
+Hay que modificarlo para que pueda discernir entre distintos mensajes.
+Ya sea un Bet, EndBet y RequestWinners.
+
+Cuando server recibe el EndBet de todos sus sockets(osea de todos sus clients), procede a hacer load bets donde carga todas las apuestas de su storage a una lista.
+
+Luego itera ese array y va consultando cual es ganador. Crea un hash donde por cada client/agency guarda como valor una lista de DNIs Ganadores.

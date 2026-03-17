@@ -90,7 +90,7 @@ type ClientBet struct {
 // devuelve una tira de bytes que puedo pasar por canal
 func serializeBet(b ClientBet) []byte {
 	msg := fmt.Sprintf(
-		"%s,%s,%s,%s,%s,%s\n",
+		"BET|%s,%s,%s,%s,%s,%s\n",
 		b.Agency,
 		b.FirstName,
 		b.LastName,
@@ -231,6 +231,37 @@ func (c *Client) StartClientLoop() {
 			)
 		}
 	}
+	//comunico que ya no hay mas bets para mandar, quedo en hold
+	err = writeFull(c.conn, []byte("END\n"))
+	if err != nil {
+		c.conn.Close()
+		return
+	}
+
+	winner_count := 0
+
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			c.conn.Close()
+			return
+		}
+
+		line = strings.TrimSpace(line)
+
+		if line == "END" {
+			break
+		}
+
+		if strings.HasPrefix(line, "WIN|") {
+
+			winner_count++
+		}
+	}
+
+	log.Infof(
+		"action: consulta_ganadores | result: success | cant_ganadores: %v", winner_count,
+	)
 
 	c.conn.Close()
 

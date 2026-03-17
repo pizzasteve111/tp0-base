@@ -1,7 +1,8 @@
 import socket
 import logging
 import signal
-from common.utils import Bet, store_bets, load_bets
+import os
+from common.utils import Bet, store_bets, load_bets, has_won
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -11,6 +12,22 @@ class Server:
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self._clients_done=0
+        #diccionario: clave Agency valor lista de Dnis ganadores
+        self._winners_by_agency={}
+        #en el compose se indica la cantidad de clients
+        #se lo tiene que pasar a server ademas de client y de ahí lo saca
+        self._total_clients=int(os.environ.get("TOTAL_CLIENTS"),"1")
+
+    def __compute_winners(self):
+        winners_by_agency = {}
+
+        for bet in load_bets():
+            if has_won(bet):
+                agency = bet.agency
+                winners_by_agency.setdefault(agency, []).append(bet.document)
+
+        self._winners_by_agency = winners_by_agency
 
     #si llamo a cerrar el server, que no acepte mas conns.
     def handle_shutdown(self, signum, frame):
@@ -95,20 +112,54 @@ class Server:
 
                     if not msg:
                         continue
-                    try:
-                        bet = self.__parse_bet(msg)
 
-                        dni = bet.GetDni()
-                        bet_number = bet.GetNumber()
+                    if msg.startswith("BET|"):
+                        try:
+                            payload = msg[len("BET|"):]
+                            bet = self.__parse_bet(payload)
 
-                        store_bets([bet])
+                            agency_id = bet.agency
+
+                            store_bets([bet])
+
+                            logging.info(
+                                f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}'
+                            )
+
+                            batch_count += 1
+                        except Exception:
+                            batch_error = True
+
+                        client_sock.sendall(b"OK\n")
+
+                    elif msg == "END":
+                        self._clients_done += 1
+                        client_finished = True
 
                         logging.info(
-                            f'action: apuesta_almacenada | result: success | dni: {dni} | numero: {bet_number}'
+                            f'action: client_end | result: success | clients_done: {self._clients_done}'
                         )
-                        batch_count+=1
-                    except Exception:
-                        batch_error=True
+
+                        # si soy el último → calcular winners
+                        if self._clients_done == self._total_clients:
+                            self.__compute_winners()
+                            winners = self._winners_by_agency.get(agency_id, [])
+
+                            for dni in winners:
+                                client_sock.sendall(f"WIN|{dni}\n".encode())
+
+                            client_sock.sendall(b"END\n")
+
+                            logging.info(
+                                f'action: send_winners | agency: {agency_id} | count: {len(winners)}'
+                            )
+
+                        else:
+                            logging.warning(f"Unknown message: {msg}")
+
+
+                        client_sock.sendall(b"OK\n")   
+                    
                 
                 client_sock.sendall(b"OK\n")
             if batch_error:
