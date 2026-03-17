@@ -5,7 +5,7 @@ import os
 from common.utils import Bet, store_bets, load_bets, has_won
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog,client_amnt):
         # Initialize server socket
         self._shutdown=False
         signal.signal(signal.SIGTERM, self.handle_shutdown)
@@ -17,7 +17,7 @@ class Server:
         self._winners_by_agency={}
         #en el compose se indica la cantidad de clients
         #se lo tiene que pasar a server ademas de client y de ahí lo saca
-        self._total_clients=int(os.environ.get("TOTAL_CLIENTS"),"1")
+        self._total_clients=client_amnt
 
     def __compute_winners(self):
         winners_by_agency = {}
