@@ -65,17 +65,30 @@ func (c *Client) GetBatchSize() int {
 // CreateClientSocket Initializes client socket. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
+// agrego reintentos si justo no arrancó server
 func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Criticalf(
-			"action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
+
+	var conn net.Conn
+	var err error
+
+	for i := 0; i < 10; i++ {
+
+		conn, err = net.Dial("tcp", c.config.ServerAddress)
+		if err == nil {
+			c.conn = conn
+			return nil
+		}
+
+		time.Sleep(500 * time.Millisecond)
 	}
-	c.conn = conn
-	return nil
+
+	log.Criticalf(
+		"action: connect | result: fail | client_id: %v | error: %v",
+		c.config.ID,
+		err,
+	)
+
+	return err
 }
 
 type ClientBet struct {
