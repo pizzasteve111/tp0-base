@@ -124,7 +124,7 @@ class Server:
                         )
 
                     # -------- END --------
-                    elif msg.startswith("END|"):
+                    elif msg.startswith("END"):
 
                         self._clients_done += 1
 
@@ -141,7 +141,7 @@ class Server:
                         return
 
                     # -------- GET_WINNERS --------
-                    elif msg.startswith("GET|"):
+                    elif msg.startswith("GET"):
 
                         if self._clients_done < self._total_clients:
                             client_sock.sendall(b"WAIT\n")
