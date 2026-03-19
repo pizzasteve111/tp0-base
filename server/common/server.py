@@ -145,14 +145,14 @@ class Server:
 
                         if self._clients_done < self._total_clients:
                             client_sock.sendall(b"WAIT\n")
-                            continue
+                        else:
 
-                        winners = self._winners_by_agency.get(client_agency, [])
+                            winners = self._winners_by_agency.get(client_agency, [])
 
-                        for dni in winners:
-                            client_sock.sendall(f"WIN|{dni}\n".encode())
+                            for dni in winners:
+                                client_sock.sendall(f"WIN|{dni}\n".encode())
 
-                        client_sock.sendall(b"END\n")
+                            client_sock.sendall(b"END\n")
 
         finally:
             client_sock.close()

@@ -252,8 +252,21 @@ func (c *Client) StartClientLoop() {
 	}
 
 	winner_count := 0
+	//Segunda etapa, pedimos los resultados
+	//abre una segunda conexión por que el server solo maneja un socket a la vez
+	//asi que para que trabaje con todos los clients, tiene que cerrar las conns
 
 	for {
+		err = c.createClientSocket()
+		if err != nil {
+			return
+		}
+		err = writeFull(c.conn, []byte("GET\n"))
+		if err != nil {
+			return
+		}
+
+		reader = bufio.NewReader(c.conn)
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			c.conn.Close()
@@ -262,19 +275,31 @@ func (c *Client) StartClientLoop() {
 
 		line = strings.TrimSpace(line)
 
+		//si no terminaron de mandar los bets otros clients, voy a esperar y
+		//volver a preguntar en unt iempo
 		if line == "WAIT" {
-			time.Sleep(50 * time.Millisecond)
+			c.conn.Close()
+			time.Sleep(500 * time.Millisecond)
 			continue
 		}
 
-		if line == "END" {
-			break
+		winner_count := 0
+		for {
+			if strings.HasPrefix(line, "WIN|") {
+				winner_count++
+			} else if line == "END" {
+				break
+			}
+			line, err = reader.ReadString('\n')
+			if err != nil {
+				break
+			}
+			line = strings.TrimSpace(line)
 		}
+		c.conn.Close()
 
-		if strings.HasPrefix(line, "WIN|") {
-
-			winner_count++
-		}
+		log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", winner_count)
+		break
 	}
 
 	log.Infof(
