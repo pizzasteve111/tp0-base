@@ -263,7 +263,6 @@ func (c *Client) StartClientLoop() {
 		return
 	}
 
-	winner_count := 0
 	//Segunda etapa, pedimos los resultados
 	//abre una segunda conexión por que el server solo maneja un socket a la vez
 	//asi que para que trabaje con todos los clients, tiene que cerrar las conns
