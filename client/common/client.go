@@ -273,7 +273,8 @@ func (c *Client) StartClientLoop() {
 		if err != nil {
 			return
 		}
-		err = writeFull(c.conn, []byte("GET\n"))
+		//manda su agency id para que en la segunda conexión se lo pueda volver a identificar
+		err = writeFull(c.conn, []byte(fmt.Sprintf("GET|%s\n", c.config.ID)))
 		if err != nil {
 			return
 		}

@@ -146,13 +146,13 @@ class Server:
 
                     # -------- GET_WINNERS --------
                     elif msg == "GET":
-
+                        agency_id = int(msg.split("|")[1])
                         if self._clients_done < self._total_clients:
                             client_sock.sendall(b"WAIT\n")
                             return
                         else:
 
-                            winners = self._winners_by_agency.get(client_agency, [])
+                            winners = self._winners_by_agency.get(agency_id, [])
 
                             for dni in winners:
                                 client_sock.sendall(f"WIN|{dni}\n".encode())
