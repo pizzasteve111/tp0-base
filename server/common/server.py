@@ -145,7 +145,7 @@ class Server:
                         return
 
                     # -------- GET_WINNERS --------
-                    elif msg == "GET":
+                    elif msg.startswith("GET|"):
                         agency_id = int(msg.split("|")[1])
                         if self._clients_done < self._total_clients:
                             client_sock.sendall(b"WAIT\n")
