@@ -89,7 +89,7 @@ class Server:
     def __handle_client_connection(self, client_sock):
 
         client_agency = None
-
+        batch_count = 0
         try:
             buffer = b''
 
@@ -122,7 +122,10 @@ class Server:
                         logging.info(
                             f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}'
                         )
+                        batch_count+=1
                     elif msg == "BATCH_END":
+                        logging.info(f'action: apuesta_recibida | result: success | cantidad: {batch_count}')
+                        batch_count = 0
                         client_sock.sendall(b"OK\n")
                     # -------- END --------
                     elif msg == "END":
