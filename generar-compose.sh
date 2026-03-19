@@ -44,7 +44,7 @@ cat >> "$COMPOSE_FILE" <<EOF
     networks:
       - testing_net
     volumes:
-      - ./data/agency-$i.csv:/dataset/agency-$i.csv:ro
+      - ./.data/agency-$i.csv:/dataset/agency-$i.csv:ro
       - ./client/config.yaml:/config.yaml
 EOF
 done
