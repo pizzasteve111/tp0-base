@@ -315,10 +315,6 @@ func (c *Client) StartClientLoop() {
 		break
 	}
 
-	log.Infof(
-		"action: consulta_ganadores | result: success | cant_ganadores: %v", winner_count,
-	)
-
 	c.conn.Close()
 
 	log.Infof(
