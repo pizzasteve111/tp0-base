@@ -201,6 +201,12 @@ func (c *Client) StartClientLoop() {
 				return
 			}
 
+			err = writeFull(c.conn, []byte("BATCH_END\n"))
+			if err != nil {
+				c.conn.Close()
+				return
+			}
+
 			_, err = reader.ReadString('\n')
 			if err != nil {
 				c.conn.Close()
@@ -225,6 +231,12 @@ func (c *Client) StartClientLoop() {
 		data := serializeBatch(batch)
 
 		err := writeFull(c.conn, data)
+		if err != nil {
+			c.conn.Close()
+			return
+		}
+
+		err = writeFull(c.conn, []byte("BATCH_END\n"))
 		if err != nil {
 			c.conn.Close()
 			return

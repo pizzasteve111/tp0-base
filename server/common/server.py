@@ -122,7 +122,8 @@ class Server:
                         logging.info(
                             f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}'
                         )
-
+                    elif msg == "BATCH_END":
+                        client_sock.sendall(b"OK\n")
                     # -------- END --------
                     elif msg == "END":
 
