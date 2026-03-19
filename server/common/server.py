@@ -5,7 +5,7 @@ import os
 from common.utils import Bet, store_bets, load_bets, has_won
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog,total_clients):
         # Initialize server socket
         self._shutdown=False
         signal.signal(signal.SIGTERM, self.handle_shutdown)
@@ -13,7 +13,7 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self._clients_done=0
-        self._total_clients=0
+        self._total_clients=total_clients
         #diccionario: clave Agency valor lista de Dnis ganadores
         self._winners_by_agency={}
         #en el compose se indica la cantidad de clients
@@ -165,8 +165,7 @@ class Server:
         Then connection created is printed and returned
         """
 
-        # Connection arrived
-        self._total_clients+=1
+        
         logging.info('action: accept_connections | result: in_progress')
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
