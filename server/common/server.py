@@ -1,4 +1,4 @@
-import client_socket
+import socket
 import logging
 import signal
 import os

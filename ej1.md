@@ -100,6 +100,8 @@ Cuando server recibe el EndBet de todos sus sockets(osea de todos sus clients), 
 Luego itera ese array y va consultando cual es ganador. Crea un hash donde por cada client/agency guarda como valor una lista de DNIs Ganadores.
 
 EJERCICIO 8
+git clean -fdx
+ sudo chown  -R $USER:$USER .
 
 ahora mismo en python tengo un server single threaded, osea que tiene que cerrar una conexión para poder abrir otra. Ahora me piden que pueda abrir y procesar conexiones usando multi threading. Mi idea es tener un pool de 6 threads y que a medida que un client se conecta que los use, si estan todos ocupados, que el client reintente conectarse en 10 segundos.
 
