@@ -98,3 +98,17 @@ Ya sea un Bet, EndBet y RequestWinners.
 Cuando server recibe el EndBet de todos sus sockets(osea de todos sus clients), procede a hacer load bets donde carga todas las apuestas de su storage a una lista.
 
 Luego itera ese array y va consultando cual es ganador. Crea un hash donde por cada client/agency guarda como valor una lista de DNIs Ganadores.
+
+EJERCICIO 8
+
+ahora mismo en python tengo un server single threaded, osea que tiene que cerrar una conexión para poder abrir otra. Ahora me piden que pueda abrir y procesar conexiones usando multi threading. Mi idea es tener un pool de 6 threads y que a medida que un client se conecta que los use, si estan todos ocupados, que el client reintente conectarse en 10 segundos.
+
+Teniendo en cuenta que se tiene que esperar a que todos los clients manden el end bet, no se cierra el socket de ese client, pero se lo pone en hold
+para retomarlo luego cuando tengamos toda la elección. Así no cerramos sockets pero tampoco bloqueamos threads en un socket durmiendo.
+
+Entonces tenemos un hash donde para cada agencyid tenemos el socket. Cada hilo del pool recibe estas conexiones y almacena los bets, asegurandose el lock de escritura al guardar las bets.
+recibe End y lo guardan en el hash.
+
+Una vez se reciben bets de todos estos clients, se usa el hash para retomar esos streams y responder con los winners.
+
+Como el cliente inmediatamente quiere conocer los ganadores, omitimos el mensaje get y server asume que ni bien puede computar ganadores, los comunica.

@@ -1,23 +1,30 @@
-import socket
+import client_socket
 import logging
 import signal
 import os
 from common.utils import Bet, store_bets, load_bets, has_won
+from multiprocessing import Pool, Manager, Lock
 
 class Server:
     def __init__(self, port, listen_backlog,total_clients):
-        # Initialize server socket
+        manager=Manager()
+        # Initialize server client_socket
         self._shutdown=False
         signal.signal(signal.SIGTERM, self.handle_shutdown)
-        self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._server_socket.bind(('', port))
-        self._server_socket.listen(listen_backlog)
-        self._clients_done=0
+        self._server_client_socket = client_socket.client_socket(client_socket.AF_INET, client_socket.client_sock_STREAM)
+        self._server_client_socket.bind(('', port))
+        self._server_client_socket.listen(listen_backlog)
+        self._clients_done=manager.Value("i",0)
         self._total_clients=total_clients
+        
         #diccionario: clave Agency valor lista de Dnis ganadores
-        self._winners_by_agency={}
+        self._winners_by_agency=manager.dict()
+        self._client_sockets_by_agency=manager.dict()
         #en el compose se indica la cantidad de clients
         #se lo tiene que pasar a server ademas de client y de ahí lo saca
+
+        self._lock=Lock()
+        self._pool=Pool(processes=6)
         
 
     def __compute_winners(self):
@@ -34,7 +41,7 @@ class Server:
     def handle_shutdown(self, signum, frame):
         logging.info("action: shutdown | result: in_progress")
         self._shutdown = True
-        self._server_socket.close()
+        self._server_client_socket.close()
 
     def __parse_bet(self, msg: str) -> Bet:
         fields = msg.split(',')
@@ -53,32 +60,35 @@ class Server:
             number
         )
     def run(self):
-        """
-        Dummy Server loop
-
-        Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
-        finishes, servers starts to accept new connections again
-        """
+       
         while not self._shutdown:
             try:
                 client_sock = self.__accept_new_connection()
-                self.__handle_client_connection(client_sock)
+                self._pool.apply_async(
+                    handle_client_connection,
+                    args=(
+                        client_sock,
+                        self._clients_done,
+                        self._winners_by_agency,
+                        self._lock,
+                        self._total_clients
+                    )
+                )
             except OSError:
                 break
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
         # while True:
-        #     client_sock = self.__accept_new_connection()
-        #     self.__handle_client_connection(client_sock)
+        #     client_client_sock = self.__accept_new_connection()
+        #     self.__handle_client_connection(client_client_sock)
     #asegura que hasta que no termine el salto de linea, no deja leer
-    def __recv_line(self, sock):
+    def __recv_line(self, client_sock):
 
         data = b''
 
         while not data.endswith(b'\n'):
 
-            chunk = sock.recv(1024)
+            chunk = client_sock.recv(1024)
 
             if not chunk:
                 break
@@ -86,7 +96,24 @@ class Server:
             data += chunk
 
         return data.decode().strip()
-    def __handle_client_connection(self, client_sock):
+
+
+    def __accept_new_connection(self):
+        """
+        Accept new connections
+
+        Function blocks until a connection to a client is made.
+        Then connection created is printed and returned
+        """
+
+        
+        logging.info('action: accept_connections | result: in_progress')
+        c, addr = self._server_client_socket.accept()
+        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+        return c
+#por fuera de clase así se puede picklear,usar datos compartidos entre procesos
+#no depende de instancia.
+def handle_client_connection(client_sock, clients_done, winners_dict, lock, total_clients):
 
         client_agency = None
         batch_count = 0
@@ -113,11 +140,12 @@ class Server:
                     if msg.startswith("BET|"):
 
                         payload = msg[len("BET|"):]
-                        bet = self.__parse_bet(payload)
+                        fields=payload.split(",")
+                        bet = Bet(*fields)
 
                         client_agency = bet.agency
-
-                        store_bets([bet])
+                        with lock:
+                            store_bets([bet])
 
                         logging.info(
                             f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}'
@@ -129,50 +157,42 @@ class Server:
                         client_sock.sendall(b"OK\n")
                     # -------- END --------
                     elif msg == "END":
+                        with lock:
+                            clients_done.value += 1
 
-                        self._clients_done += 1
+                            logging.info(
+                                f'action: client_end | result: success | clients_done: {clients_done.value}'
+                            )
 
-                        logging.info(
-                            f'action: client_end | result: success | clients_done: {self._clients_done}'
-                        )
+                            if clients_done.value == total_clients:
 
-                        if self._clients_done == self._total_clients:
+                                winners = {}
 
-                            self.__compute_winners()
+                                for bet in load_bets():
+                                    if has_won(bet):
+                                        winners.setdefault(bet.agency, []).append(bet.document)
 
-                            logging.info("action: sorteo | result: success")
+                                winners_dict.clear()
+                                winners_dict.update(winners)
+
+                                logging.info("action: sorteo | result: success")
 
                         return
 
                     # -------- GET_WINNERS --------
                     elif msg.startswith("GET|"):
                         agency_id = int(msg.split("|")[1])
-                        if self._clients_done < self._total_clients:
-                            client_sock.sendall(b"WAIT\n")
-                            return
-                        else:
+                        with lock:
+                            if clients_done.value < total_clients:
+                                client_sock.sendall(b"WAIT\n")
+                                continue
 
-                            winners = self._winners_by_agency.get(agency_id, [])
+                            winners = winners_dict.get(agency_id, [])
 
-                            for dni in winners:
-                                client_sock.sendall(f"WIN|{dni}\n".encode())
+                        for dni in winners:
+                            client_sock.sendall(f"WIN|{dni}\n".encode())
 
-                            client_sock.sendall(b"END\n")
-                            return
-
+                        client_sock.sendall(b"END\n")
+                        return
         finally:
             client_sock.close()
-
-    def __accept_new_connection(self):
-        """
-        Accept new connections
-
-        Function blocks until a connection to a client is made.
-        Then connection created is printed and returned
-        """
-
-        
-        logging.info('action: accept_connections | result: in_progress')
-        c, addr = self._server_socket.accept()
-        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        return c
