@@ -41,7 +41,7 @@ class Server:
     def handle_shutdown(self, signum, frame):
         logging.info("action: shutdown | result: in_progress")
         self._shutdown = True
-        self._server_client_socket.close()
+        self._server_socket.close()
 
     def __parse_bet(self, msg: str) -> Bet:
         fields = msg.split(',')
@@ -108,7 +108,7 @@ class Server:
 
         
         logging.info('action: accept_connections | result: in_progress')
-        c, addr = self._server_client_socket.accept()
+        c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
 #por fuera de clase así se puede picklear,usar datos compartidos entre procesos
@@ -185,7 +185,7 @@ def handle_client_connection(client_sock, clients_done, winners_dict, lock, tota
                         with lock:
                             if clients_done.value < total_clients:
                                 client_sock.sendall(b"WAIT\n")
-                                continue
+                                return
 
                             winners = winners_dict.get(agency_id, [])
 
