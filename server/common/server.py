@@ -11,9 +11,9 @@ class Server:
         # Initialize server client_socket
         self._shutdown=False
         signal.signal(signal.SIGTERM, self.handle_shutdown)
-        self._server_client_socket = client_socket.client_socket(client_socket.AF_INET, client_socket.client_sock_STREAM)
-        self._server_client_socket.bind(('', port))
-        self._server_client_socket.listen(listen_backlog)
+        self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._server_socket.bind(('', port))
+        self._server_socket.listen(listen_backlog)
         self._clients_done=manager.Value("i",0)
         self._total_clients=total_clients
         
