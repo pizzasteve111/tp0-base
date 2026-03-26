@@ -2,6 +2,7 @@ import socket
 import logging
 import signal
 import os
+from threading import Thread, Lock
 from common.utils import Bet, store_bets, load_bets, has_won
 from multiprocessing import Pool, Manager, Lock
 
@@ -47,7 +48,7 @@ class Server:
         fields = msg.split(',')
 
         if len(fields) != 6:
-            raise ValueError("Invalid bet format")
+            raise ValueError("")
 
         agency, first_name, last_name, document, birthdate, number = fields
 
@@ -60,27 +61,14 @@ class Server:
             number
         )
     def run(self):
-       
         while not self._shutdown:
             try:
                 client_sock = self.__accept_new_connection()
-                self._pool.apply_async(
-                    handle_client_connection,
-                    args=(
-                        client_sock,
-                        self._clients_done,
-                        self._winners_by_agency,
-                        self._lock,
-                        self._total_clients
-                    )
-                )
+                t = Thread(target=self.__handle_client_connection, args=(client_sock,))
+                t.daemon = True
+                t.start()
             except OSError:
                 break
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
-        # while True:
-        #     client_client_sock = self.__accept_new_connection()
-        #     self.__handle_client_connection(client_client_sock)
     #asegura que hasta que no termine el salto de linea, no deja leer
     def __recv_line(self, client_sock):
 
@@ -99,12 +87,7 @@ class Server:
 
 
     def __accept_new_connection(self):
-        """
-        Accept new connections
-
-        Function blocks until a connection to a client is made.
-        Then connection created is printed and returned
-        """
+       
 
         
         logging.info('action: accept_connections | result: in_progress')
@@ -113,85 +96,54 @@ class Server:
         return c
 #por fuera de clase así se puede picklear,usar datos compartidos entre procesos
 #no depende de instancia.
-def handle_client_connection(client_sock, clients_done, winners_dict, lock, total_clients):
-
+def __handle_client_connection(self, client_sock):
         client_agency = None
         batch_count = 0
         try:
             buffer = b''
-
             while True:
-
                 chunk = client_sock.recv(1024)
                 if not chunk:
                     break
-
                 buffer += chunk
-
                 while b'\n' in buffer:
-
                     line, buffer = buffer.split(b'\n', 1)
                     msg = line.decode().strip()
-
                     if not msg:
                         continue
 
-                    # -------- BET --------
                     if msg.startswith("BET|"):
-
                         payload = msg[len("BET|"):]
-                        fields=payload.split(",")
-                        bet = Bet(*fields)
-
+                        bet = self.__parse_bet(payload)
                         client_agency = bet.agency
-                        with lock:
+                        with self._lock:
                             store_bets([bet])
+                        logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}')
+                        batch_count += 1
 
-                        logging.info(
-                            f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}'
-                        )
-                        batch_count+=1
                     elif msg == "BATCH_END":
                         logging.info(f'action: apuesta_recibida | result: success | cantidad: {batch_count}')
                         batch_count = 0
                         client_sock.sendall(b"OK\n")
-                    # -------- END --------
+
                     elif msg == "END":
-                        with lock:
-                            clients_done.value += 1
-
-                            logging.info(
-                                f'action: client_end | result: success | clients_done: {clients_done.value}'
-                            )
-
-                            if clients_done.value == total_clients:
-
-                                winners = {}
-
-                                for bet in load_bets():
-                                    if has_won(bet):
-                                        winners.setdefault(bet.agency, []).append(bet.document)
-
-                                winners_dict.clear()
-                                winners_dict.update(winners)
-
+                        with self._lock:
+                            self._clients_done += 1
+                            logging.info(f'action: client_end | result: success | clients_done: {self._clients_done}')
+                            if self._clients_done == self._total_clients:
+                                self.__compute_winners()
                                 logging.info("action: sorteo | result: success")
-
                         return
 
-                    # -------- GET_WINNERS --------
                     elif msg.startswith("GET|"):
                         agency_id = int(msg.split("|")[1])
-                        with lock:
-                            if clients_done.value < total_clients:
+                        with self._lock:
+                            if self._clients_done < self._total_clients:
                                 client_sock.sendall(b"WAIT\n")
                                 return
-
-                            winners = winners_dict.get(agency_id, [])
-
+                            winners = list(self._winners_by_agency.get(agency_id, []))
                         for dni in winners:
                             client_sock.sendall(f"WIN|{dni}\n".encode())
-
                         client_sock.sendall(b"END\n")
                         return
         finally:
