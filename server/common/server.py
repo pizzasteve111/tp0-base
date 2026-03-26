@@ -2,7 +2,7 @@ import socket
 import logging
 import signal
 import os
-from threading import Thread, Lock
+from threading import Thread, Lock, Condition
 from common.utils import Bet, store_bets, load_bets, has_won
 
 class Server:
@@ -21,8 +21,8 @@ class Server:
         self._client_sockets_by_agency={}
         #en el compose se indica la cantidad de clients
         #se lo tiene que pasar a server ademas de client y de ahí lo saca
-
-        self._lock=Lock()
+        self._winners_computed=False
+        self._condition= Condition()
         
 
     def __compute_winners(self):
@@ -124,21 +124,20 @@ class Server:
                             client_sock.sendall(b"OK\n")
 
                         elif msg == "END":
-                            with self._lock:
+                            with self._condition:
                                 self._clients_done += 1
                                 logging.info(f'action: client_end | result: success | clients_done: {self._clients_done}')
                                 if self._clients_done == self._total_clients:
+                                    self._winners_computed=True
                                     self.__compute_winners()
                                     logging.info("action: sorteo | result: success")
-                            return
-
-                        elif msg.startswith("GET|"):
-                            agency_id = int(msg.split("|")[1])
-                            with self._lock:
-                                if self._clients_done < self._total_clients:
-                                    client_sock.sendall(b"WAIT\n")
-                                    return
-                                winners = list(self._winners_by_agency.get(agency_id, []))
+                                    # que la condition me triggeree todas las conexiones dormidas
+                                    self._condition.notify_all()
+                                else:
+                                    #si no esta el flag, que esperen
+                                    self._condition.wait_for(lambda: self._winners_computed)
+                            agency_id = client_agency
+                            winners = list(self._winners_by_agency.get(agency_id, []))
                             for dni in winners:
                                 client_sock.sendall(f"WIN|{dni}\n".encode())
                             client_sock.sendall(b"END\n")

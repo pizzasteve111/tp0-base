@@ -267,59 +267,25 @@ func (c *Client) StartClientLoop() {
 	//abre una segunda conexión por que el server solo maneja un socket a la vez
 	//asi que para que trabaje con todos los clients, tiene que cerrar las conns
 
+	winner_count := 0
 	for {
-		err = c.createClientSocket()
-		if err != nil {
-			return
-		}
-		//manda su agency id para que en la segunda conexión se lo pueda volver a identificar
-		err = writeFull(c.conn, []byte(fmt.Sprintf("GET|%s\n", c.config.ID)))
-		if err != nil {
-			return
-		}
-
-		reader = bufio.NewReader(c.conn)
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			c.conn.Close()
-			return
+			break
 		}
-
 		line = strings.TrimSpace(line)
-
-		//si no terminaron de mandar los bets otros clients, voy a esperar y
-		//volver a preguntar en unt iempo
-		if line == "WAIT" {
-			c.conn.Close()
-			time.Sleep(500 * time.Millisecond)
-			continue
+		if strings.HasPrefix(line, "WIN|") {
+			winner_count++
+		} else if line == "END" {
+			break
 		}
-
-		winner_count := 0
-		for {
-			if strings.HasPrefix(line, "WIN|") {
-				winner_count++
-			} else if line == "END" {
-				break
-			}
-			line, err = reader.ReadString('\n')
-			if err != nil {
-				break
-			}
-			line = strings.TrimSpace(line)
-		}
-		c.conn.Close()
-
-		log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", winner_count)
-		break
 	}
+
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", winner_count)
+	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 
 	c.conn.Close()
 
-	log.Infof(
-		"action: loop_finished | result: success | client_id: %v",
-		c.config.ID,
-	)
 	//PARTE 6: se debería cambiar a iterar el vector de bets e ir enviandolas
 	//con los metos de serialize y write full que ya existen
 
