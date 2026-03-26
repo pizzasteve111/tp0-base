@@ -113,7 +113,7 @@ class Server:
                             payload = msg[len("BET|"):]
                             bet = self.__parse_bet(payload)
                             client_agency = bet.agency
-                            with self._lock:
+                            with self._condition:
                                 store_bets([bet])
                             logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}')
                             batch_count += 1
