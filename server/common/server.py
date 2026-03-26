@@ -4,28 +4,25 @@ import signal
 import os
 from threading import Thread, Lock
 from common.utils import Bet, store_bets, load_bets, has_won
-from multiprocessing import Pool, Manager, Lock
 
 class Server:
     def __init__(self, port, listen_backlog,total_clients):
-        manager=Manager()
         # Initialize server client_socket
         self._shutdown=False
         signal.signal(signal.SIGTERM, self.handle_shutdown)
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
-        self._clients_done=manager.Value("i",0)
+        self._clients_done=0
         self._total_clients=total_clients
         
         #diccionario: clave Agency valor lista de Dnis ganadores
-        self._winners_by_agency=manager.dict()
-        self._client_sockets_by_agency=manager.dict()
+        self._winners_by_agency={}
+        self._client_sockets_by_agency={}
         #en el compose se indica la cantidad de clients
         #se lo tiene que pasar a server ademas de client y de ahí lo saca
 
         self._lock=Lock()
-        self._pool=Pool(processes=6)
         
 
     def __compute_winners(self):
