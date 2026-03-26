@@ -96,55 +96,55 @@ class Server:
         return c
 #por fuera de clase así se puede picklear,usar datos compartidos entre procesos
 #no depende de instancia.
-def __handle_client_connection(self, client_sock):
-        client_agency = None
-        batch_count = 0
-        try:
-            buffer = b''
-            while True:
-                chunk = client_sock.recv(1024)
-                if not chunk:
-                    break
-                buffer += chunk
-                while b'\n' in buffer:
-                    line, buffer = buffer.split(b'\n', 1)
-                    msg = line.decode().strip()
-                    if not msg:
-                        continue
+    def __handle_client_connection(self, client_sock):
+            client_agency = None
+            batch_count = 0
+            try:
+                buffer = b''
+                while True:
+                    chunk = client_sock.recv(1024)
+                    if not chunk:
+                        break
+                    buffer += chunk
+                    while b'\n' in buffer:
+                        line, buffer = buffer.split(b'\n', 1)
+                        msg = line.decode().strip()
+                        if not msg:
+                            continue
 
-                    if msg.startswith("BET|"):
-                        payload = msg[len("BET|"):]
-                        bet = self.__parse_bet(payload)
-                        client_agency = bet.agency
-                        with self._lock:
-                            store_bets([bet])
-                        logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}')
-                        batch_count += 1
+                        if msg.startswith("BET|"):
+                            payload = msg[len("BET|"):]
+                            bet = self.__parse_bet(payload)
+                            client_agency = bet.agency
+                            with self._lock:
+                                store_bets([bet])
+                            logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.GetDni()} | numero: {bet.GetNumber()}')
+                            batch_count += 1
 
-                    elif msg == "BATCH_END":
-                        logging.info(f'action: apuesta_recibida | result: success | cantidad: {batch_count}')
-                        batch_count = 0
-                        client_sock.sendall(b"OK\n")
+                        elif msg == "BATCH_END":
+                            logging.info(f'action: apuesta_recibida | result: success | cantidad: {batch_count}')
+                            batch_count = 0
+                            client_sock.sendall(b"OK\n")
 
-                    elif msg == "END":
-                        with self._lock:
-                            self._clients_done += 1
-                            logging.info(f'action: client_end | result: success | clients_done: {self._clients_done}')
-                            if self._clients_done == self._total_clients:
-                                self.__compute_winners()
-                                logging.info("action: sorteo | result: success")
-                        return
+                        elif msg == "END":
+                            with self._lock:
+                                self._clients_done += 1
+                                logging.info(f'action: client_end | result: success | clients_done: {self._clients_done}')
+                                if self._clients_done == self._total_clients:
+                                    self.__compute_winners()
+                                    logging.info("action: sorteo | result: success")
+                            return
 
-                    elif msg.startswith("GET|"):
-                        agency_id = int(msg.split("|")[1])
-                        with self._lock:
-                            if self._clients_done < self._total_clients:
-                                client_sock.sendall(b"WAIT\n")
-                                return
-                            winners = list(self._winners_by_agency.get(agency_id, []))
-                        for dni in winners:
-                            client_sock.sendall(f"WIN|{dni}\n".encode())
-                        client_sock.sendall(b"END\n")
-                        return
-        finally:
-            client_sock.close()
+                        elif msg.startswith("GET|"):
+                            agency_id = int(msg.split("|")[1])
+                            with self._lock:
+                                if self._clients_done < self._total_clients:
+                                    client_sock.sendall(b"WAIT\n")
+                                    return
+                                winners = list(self._winners_by_agency.get(agency_id, []))
+                            for dni in winners:
+                                client_sock.sendall(f"WIN|{dni}\n".encode())
+                            client_sock.sendall(b"END\n")
+                            return
+            finally:
+                client_sock.close()
