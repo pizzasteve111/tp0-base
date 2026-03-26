@@ -1,4 +1,4 @@
-#Informe Juan Cardoso
+# Informe Juan Cardoso
 
 El presente trabajo práctico fue desarollado mediante Docker Desktop y Wsl. No pude desarrollarlo en Linux debido a limitaciones técnicas de mi computadora.
 
